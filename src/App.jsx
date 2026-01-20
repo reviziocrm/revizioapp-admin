@@ -4,6 +4,32 @@ import { Users, Plus, Search, Key, Calendar, Building2, CreditCard, Check, X, Al
 // ⚠️ IMPORTANT: Schimbă această parolă cu una proprie!
 const ADMIN_PASSWORD = 'RevizioAdmin#2026!';
 
+// Storage wrapper pentru localStorage (înlocuiește storage)
+const storage = {
+  async get(key) {
+    const value = localStorage.getItem(key);
+    return value ? { value } : null;
+  },
+  async set(key, value) {
+    localStorage.setItem(key, value);
+    return { key, value };
+  },
+  async delete(key) {
+    localStorage.removeItem(key);
+    return { key, deleted: true };
+  },
+  async list(prefix = '') {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        keys.push(key);
+      }
+    }
+    return { keys };
+  }
+};
+
 export default function AdminDashboard() {
   // Admin authentication
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -73,11 +99,11 @@ export default function AdminDashboard() {
 
   const loadLicenses = async () => {
     try {
-      const keys = await window.storage.list('license:');
+      const keys = await storage.list('license:');
       if (keys && keys.keys) {
         const loadedLicenses = [];
         for (const key of keys.keys) {
-          const data = await window.storage.get(key);
+          const data = await storage.get(key);
           if (data && data.value) {
             loadedLicenses.push(JSON.parse(data.value));
           }
@@ -176,7 +202,7 @@ export default function AdminDashboard() {
       };
     }
     
-    await window.storage.set(license.id, JSON.stringify(license));
+    await storage.set(license.id, JSON.stringify(license));
     await loadLicenses();
     resetForm();
   };
@@ -203,7 +229,7 @@ export default function AdminDashboard() {
       show: true,
       message: `Sigur doriți să ștergeți licența pentru "${license.companyName}"?`,
       onConfirm: async () => {
-        await window.storage.delete(license.id);
+        await storage.delete(license.id);
         await loadLicenses();
         setConfirmDialog({ show: false, message: '', onConfirm: null });
       }
@@ -224,7 +250,7 @@ export default function AdminDashboard() {
       updatedAt: new Date().toISOString()
     };
     
-    await window.storage.set(license.id, JSON.stringify(updatedLicense));
+    await storage.set(license.id, JSON.stringify(updatedLicense));
     await loadLicenses();
   };
 
@@ -241,7 +267,7 @@ export default function AdminDashboard() {
           updatedAt: new Date().toISOString()
         };
         
-        await window.storage.set(license.id, JSON.stringify(updatedLicense));
+        await storage.set(license.id, JSON.stringify(updatedLicense));
         await loadLicenses();
         setConfirmDialog({ show: false, message: '', onConfirm: null });
       }
@@ -260,7 +286,7 @@ export default function AdminDashboard() {
       updatedAt: new Date().toISOString()
     };
     
-    await window.storage.set(license.id, JSON.stringify(updatedLicense));
+    await storage.set(license.id, JSON.stringify(updatedLicense));
     await loadLicenses();
   };
 
@@ -273,7 +299,7 @@ export default function AdminDashboard() {
       updatedAt: new Date().toISOString()
     };
     
-    await window.storage.set(license.id, JSON.stringify(updatedLicense));
+    await storage.set(license.id, JSON.stringify(updatedLicense));
     await loadLicenses();
   };
 
@@ -289,7 +315,7 @@ export default function AdminDashboard() {
           updatedAt: new Date().toISOString()
         };
         
-        await window.storage.set(license.id, JSON.stringify(updatedLicense));
+        await storage.set(license.id, JSON.stringify(updatedLicense));
         await loadLicenses();
         setConfirmDialog({ show: false, message: '', onConfirm: null });
       }
@@ -408,13 +434,13 @@ Pentru suport, contactați administratorul.`;
         if (gdprAction === 'delete') {
           // Delete licenses
           for (const license of inactiveLicenses) {
-            await window.storage.delete(license.id);
+            await storage.delete(license.id);
           }
         } else {
           // Anonymize licenses
           for (const license of inactiveLicenses) {
             const anonymized = anonymizeLicense(license);
-            await window.storage.set(license.id, JSON.stringify(anonymized));
+            await storage.set(license.id, JSON.stringify(anonymized));
           }
         }
         
