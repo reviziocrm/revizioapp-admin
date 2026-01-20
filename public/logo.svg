@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 220">
+  
+  <!-- Pipe system - starting from top of boiler, wrapping around text, back to bottom -->
+  
+  <!-- Left pipe - goes up and curves right -->
+  <path d="M56 25 
+           L56 8 
+           Q56 0, 64 0 
+           L340 0 
+           Q350 0, 350 10 
+           L350 85"
+        stroke="#64748b" 
+        stroke-width="12" 
+        stroke-linecap="round"
+        fill="none"/>
+  
+  <!-- Middle pipe - goes up, merges with left pipe -->
+  <path d="M86 25 
+           L86 15 
+           Q86 8, 78 8
+           L64 8"
+        stroke="#64748b" 
+        stroke-width="12" 
+        stroke-linecap="round"
+        fill="none"/>
+  
+  <!-- Right pipe from boiler - goes up and curves right, merges into main flow -->
+  <path d="M116 25 
+           L116 -8 
+           Q116 -16, 124 -16 
+           L340 -16 
+           Q358 -16, 358 0
+           L358 10
+           Q358 18, 350 18
+           L350 10"
+        stroke="#64748b" 
+        stroke-width="12" 
+        stroke-linecap="round"
+        fill="none"/>
+  
+  <!-- Right side pipe going down -->
+  <path d="M350 85
+           Q350 95, 358 95
+           L358 180
+           Q358 195, 345 195
+           L141 195
+           Q133 195, 133 187
+           L133 185"
+        stroke="#64748b" 
+        stroke-width="12" 
+        stroke-linecap="round"
+        fill="none"/>
+        
+  <!-- Second return pipe -->
+  <path d="M350 115
+           Q365 115, 365 130
+           L365 188
+           Q365 205, 350 205
+           L75 205
+           Q61 205, 61 191
+           L61 185"
+        stroke="#64748b" 
+        stroke-width="12" 
+        stroke-linecap="round"
+        fill="none"/>
+  
+  <!-- Boiler body - main rectangle with rounded corners -->
+  <rect x="40" y="25" width="120" height="160" rx="10" ry="10" fill="#2563eb"/>
+  
+  <!-- Boiler display/control panel -->
+  <rect x="55" y="40" width="90" height="35" rx="5" ry="5" fill="#1e40af"/>
+  
+  <!-- Display screen -->
+  <rect x="62" y="47" width="45" height="21" rx="3" ry="3" fill="#1e3a8a"/>
+  
+  <!-- Control buttons on panel -->
+  <circle cx="120" cy="52" r="5" fill="#3b82f6"/>
+  <circle cx="120" cy="65" r="5" fill="#3b82f6"/>
+  <circle cx="135" cy="58" r="7" fill="#ef4444"/>
+  
+  <!-- Flame window on boiler -->
+  <rect x="65" y="90" width="70" height="60" rx="5" ry="5" fill="#1e3a8a"/>
+  
+  <!-- Outer flame -->
+  <path d="M100 143
+           C100 143, 75 120, 75 105
+           C75 95, 83 88, 100 97
+           C117 88, 125 95, 125 105
+           C125 120, 100 143, 100 143Z" 
+        fill="#f97316"/>
+  
+  <!-- Inner flame -->
+  <path d="M100 136
+           C100 136, 85 120, 85 110
+           C85 103, 91 98, 100 104
+           C109 98, 115 103, 115 110
+           C115 120, 100 136, 100 136Z" 
+        fill="#fbbf24"/>
+  
+  <!-- Checkmark badge - green circle with check - BOTTOM RIGHT of boiler -->
+  <circle cx="148" cy="168" r="22" fill="#22c55e"/>
+  <path d="M137 168 L145 177 L161 159" 
+        stroke="white" 
+        stroke-width="5" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        fill="none"/>
+  
+  <!-- App name - centered closer to boiler -->
+  <text x="175" y="85" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#2563eb">Revizio</text>
+  <text x="175" y="123" font-family="Arial, sans-serif" font-size="28" fill="#f97316">App</text>
+  
+  <!-- Tagline -->
+  <text x="175" y="155" font-family="Arial, sans-serif" font-size="14" fill="#64748b">Revizii organizate simplu</text>
+  
+</svg>
