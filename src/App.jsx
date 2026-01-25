@@ -283,7 +283,7 @@ export default function AdminDashboard() {
       email: conversionEmail,
       password: tempPassword,
       mustChangePassword: true,
-      licenseKeyDisabled: true, // Disable license key login
+      licenseKeyDisabled: true, // Disable license key - must use email now
       expiresAt: new Date('2099-12-31').toISOString(),
       convertedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -295,7 +295,7 @@ export default function AdminDashboard() {
     // Show success with new credentials
     setConfirmDialog({
       show: true,
-      message: `✅ Licență convertită cu succes!\n\nCredențiale noi pentru ${conversionLicense.ownerName}:\n\n📧 Email: ${conversionEmail}\n🔑 Parolă temporară: ${tempPassword}\n\nClientul va trebui să schimbe parola la prima logare.\n\n⚠️ Cheia de licență (${conversionLicense.licenseKey}) nu mai funcționează.`,
+      message: `✅ Licență convertită cu succes!\n\nCredențiale pentru ${conversionLicense.ownerName}:\n\n📧 Email: ${conversionEmail}\n🔒 Parolă temporară: ${tempPassword}\n\n⚠️ La prima logare, operatorul trebuie să schimbe parola.\n\n🔑 Cheia de licență (${conversionLicense.licenseKey}) nu mai funcționează.\n\n💡 Operatorul se va loga folosind tab-ul "Email".`,
       onConfirm: () => {
         setConfirmDialog({ show: false, message: '', onConfirm: null });
       }
@@ -313,22 +313,26 @@ export default function AdminDashboard() {
       phone = '40' + phone;
     }
     
-    const message = `🔐 Credențiale noi RevizioApp
+    const message = `🔐 Credențiale RevizioApp - Cont Plătitor
 
 Bună ziua ${license.ownerName},
 
 Contul dvs. a fost actualizat la acces NELIMITAT! 🎉
 
+Credențiale de acces:
 📧 Email: ${license.email}
-🔑 Parolă temporară: ${license.password}
+🔒 Parolă temporară: ${license.password}
 
 🌐 Link acces: https://revizioapp.ro
 
-⚠️ La prima logare vi se va cere să schimbați parola.
+⚠️ IMPORTANT:
+- Folosiți tab-ul "Email" pentru autentificare
+- La prima logare vi se va cere să schimbați parola
+- Cheia de licență veche nu mai funcționează
 
-Notă: Cheia de licență veche nu mai funcționează. Folosiți tab-ul "Email" pentru autentificare.
+Pentru suport: WhatsApp +40 723 533 462
 
-Pentru suport, contactați administratorul.`;
+Vă mulțumim că ați ales RevizioApp!`;
 
     if (phone) {
       const encodedMessage = encodeURIComponent(message);
@@ -552,23 +556,25 @@ Pentru suport, contactați administratorul.`;
       return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Suspendat</span>;
     }
     
-    // Check for unlimited license
+    // Check for unlimited license (PRODUCTION - Paid)
     if (license.isUnlimited) {
-      if (license.licenseKeyDisabled) {
-        return <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">✓ Nelimitat (Email)</span>;
-      }
-      return <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">✓ Nelimitat</span>;
+      return (
+        <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium flex items-center gap-1">
+          ✓ Activ (Plătitor)
+        </span>
+      );
     }
     
     if (daysLeft < 0) {
-      return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Expirat</span>;
+      return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Expirat (Demo)</span>;
     }
     
+    // Trial = DEMO environment
     if (license.status === 'trial') {
       if (daysLeft <= 7) {
-        return <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">Trial - {daysLeft} zile</span>;
+        return <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">🧪 Demo - {daysLeft} zile</span>;
       }
-      return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Trial - {daysLeft} zile</span>;
+      return <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">🧪 Demo - {daysLeft} zile</span>;
     }
     
     if (license.status === 'active') {
@@ -1149,7 +1155,7 @@ Pentru suport, contactați administratorul.`;
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{stats.unlimited}</p>
-                <p className="text-sm text-gray-500">Nelimitate</p>
+                <p className="text-sm text-gray-500">Plătitori</p>
               </div>
             </div>
           </div>
@@ -1168,12 +1174,12 @@ Pentru suport, contactați administratorul.`;
           
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Clock className="text-blue-600" size={24} />
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Clock className="text-purple-600" size={24} />
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{stats.trial}</p>
-                <p className="text-sm text-gray-500">Trial</p>
+                <p className="text-sm text-gray-500">Demo</p>
               </div>
             </div>
           </div>
@@ -1225,9 +1231,9 @@ Pentru suport, contactați administratorul.`;
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Toate statusurile</option>
-                  <option value="unlimited">✓ Nelimitate</option>
+                  <option value="unlimited">✓ Plătitori</option>
                   <option value="active">Active (limitate)</option>
-                  <option value="trial">Trial</option>
+                  <option value="trial">🧪 Demo</option>
                   <option value="expired">Expirate</option>
                   <option value="suspended">Suspendate</option>
                 </select>
