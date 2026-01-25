@@ -53,6 +53,12 @@ export default function AdminDashboard() {
   const [gdprAction, setGdprAction] = useState('anonymize');
   const [inactiveLicenses, setInactiveLicenses] = useState([]);
   
+  // Conversion to unlimited modal
+  const [showConversionModal, setShowConversionModal] = useState(false);
+  const [conversionLicense, setConversionLicense] = useState(null);
+  const [conversionEmail, setConversionEmail] = useState('');
+  const [conversionError, setConversionError] = useState('');
+  
   const [licenseForm, setLicenseForm] = useState({
     companyName: '',
     ownerName: '',
@@ -255,23 +261,83 @@ export default function AdminDashboard() {
   };
 
   const setUnlimitedLicense = async (license) => {
+    // Open conversion modal to collect email
+    setConversionLicense(license);
+    setConversionEmail(license.email || '');
+    setConversionError('');
+    setShowConversionModal(true);
+  };
+
+  const confirmConversion = async () => {
+    if (!conversionEmail || !conversionEmail.includes('@')) {
+      setConversionError('Introduceți o adresă de email validă');
+      return;
+    }
+
+    const tempPassword = generatePassword();
+    
+    const updatedLicense = {
+      ...conversionLicense,
+      status: 'active',
+      isUnlimited: true,
+      email: conversionEmail,
+      password: tempPassword,
+      mustChangePassword: true,
+      licenseKeyDisabled: true, // Disable license key login
+      expiresAt: new Date('2099-12-31').toISOString(),
+      convertedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await storage.set(conversionLicense.id, JSON.stringify(updatedLicense));
+    await loadLicenses();
+    
+    // Show success with new credentials
     setConfirmDialog({
       show: true,
-      message: `Sigur doriți să setați licența pentru "${license.companyName}" ca NELIMITATĂ? Operatorul va avea acces permanent până la reziliere.`,
-      onConfirm: async () => {
-        const updatedLicense = {
-          ...license,
-          status: 'active',
-          isUnlimited: true,
-          expiresAt: new Date('2099-12-31').toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        await storage.set(license.id, JSON.stringify(updatedLicense));
-        await loadLicenses();
+      message: `✅ Licență convertită cu succes!\n\nCredențiale noi pentru ${conversionLicense.ownerName}:\n\n📧 Email: ${conversionEmail}\n🔑 Parolă temporară: ${tempPassword}\n\nClientul va trebui să schimbe parola la prima logare.\n\n⚠️ Cheia de licență (${conversionLicense.licenseKey}) nu mai funcționează.`,
+      onConfirm: () => {
         setConfirmDialog({ show: false, message: '', onConfirm: null });
       }
     });
+    
+    setShowConversionModal(false);
+    setConversionLicense(null);
+    setConversionEmail('');
+  };
+
+  const sendConversionCredentials = (license) => {
+    // Format phone number for WhatsApp
+    let phone = license.phone?.replace(/\s/g, '').replace(/^0/, '40') || '';
+    if (phone && !phone.startsWith('+') && !phone.startsWith('40')) {
+      phone = '40' + phone;
+    }
+    
+    const message = `🔐 Credențiale noi RevizioApp
+
+Bună ziua ${license.ownerName},
+
+Contul dvs. a fost actualizat la acces NELIMITAT! 🎉
+
+📧 Email: ${license.email}
+🔑 Parolă temporară: ${license.password}
+
+🌐 Link acces: https://revizioapp.ro
+
+⚠️ La prima logare vi se va cere să schimbați parola.
+
+Notă: Cheia de licență veche nu mai funcționează. Folosiți tab-ul "Email" pentru autentificare.
+
+Pentru suport, contactați administratorul.`;
+
+    if (phone) {
+      const encodedMessage = encodeURIComponent(message);
+      window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank');
+    } else {
+      // Copy to clipboard if no phone
+      navigator.clipboard.writeText(message);
+      alert('Mesajul a fost copiat în clipboard (clientul nu are număr de telefon).');
+    }
   };
 
   const removeLimitedLicense = async (license) => {
@@ -330,6 +396,31 @@ export default function AdminDashboard() {
 
   // Send credentials functions
   const getCredentialsMessage = (license) => {
+    // For email-based login (converted unlimited)
+    if (license.licenseKeyDisabled && license.email) {
+      const passwordNote = license.mustChangePassword 
+        ? '\n\n⚠️ La prima logare vi se va cere să schimbați parola.' 
+        : '';
+      
+      return `🔐 Acces RevizioApp
+
+Bună ziua ${license.ownerName},
+
+Ați primit acces NELIMITAT la RevizioApp - Revizii organizate simplu.
+
+📋 Credențiale (logare cu Email):
+📧 Email: ${license.email}
+🔑 Parolă: ${license.password}
+
+🌐 Link acces: https://revizioapp.ro
+➡️ Folosiți tab-ul "Email" pentru autentificare.${passwordNote}
+
+Acces: ✓ Nelimitat
+
+Pentru suport, contactați administratorul.`;
+    }
+    
+    // For license key login (trial or old unlimited)
     const expiryText = license.isUnlimited 
       ? 'Acces: Nelimitat' 
       : `Trial: ${license.trialDays} zile de la prima accesare`;
@@ -341,8 +432,8 @@ Bună ziua ${license.ownerName},
 Ați primit acces la RevizioApp - Revizii organizate simplu.
 
 📋 Credențiale:
-Cheie licență: ${license.licenseKey}
-Parolă: ${license.password}
+🔑 Cheie licență: ${license.licenseKey}
+🔒 Parolă: ${license.password}
 
 🌐 Link acces: https://revizioapp.ro
 
@@ -463,6 +554,9 @@ Pentru suport, contactați administratorul.`;
     
     // Check for unlimited license
     if (license.isUnlimited) {
+      if (license.licenseKeyDisabled) {
+        return <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">✓ Nelimitat (Email)</span>;
+      }
       return <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">✓ Nelimitat</span>;
     }
     
@@ -607,6 +701,89 @@ Pentru suport, contactați administratorul.`;
               >
                 Confirmă
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Conversion to Unlimited Modal */}
+      {showConversionModal && conversionLicense && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">🔓 Convertire la Nelimitat</h3>
+              <button 
+                onClick={() => {
+                  setShowConversionModal(false);
+                  setConversionLicense(null);
+                  setConversionEmail('');
+                  setConversionError('');
+                }} 
+                className="text-gray-500 hover:text-gray-700 p-2"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>{conversionLicense.ownerName}</strong> ({conversionLicense.companyName})
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Cheie actuală: {conversionLicense.licenseKey}
+                </p>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ După conversie:
+                </p>
+                <ul className="text-xs text-yellow-700 mt-1 list-disc list-inside">
+                  <li>Cheia de licență nu va mai funcționa</li>
+                  <li>Clientul se va loga cu Email + Parolă</li>
+                  <li>Va trebui să schimbe parola la prima logare</li>
+                </ul>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email client *
+                </label>
+                <input
+                  type="email"
+                  value={conversionEmail}
+                  onChange={(e) => {
+                    setConversionEmail(e.target.value);
+                    setConversionError('');
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="client@email.com"
+                />
+                {conversionError && (
+                  <p className="text-sm text-red-600 mt-1">{conversionError}</p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setShowConversionModal(false);
+                    setConversionLicense(null);
+                    setConversionEmail('');
+                    setConversionError('');
+                  }}
+                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                >
+                  Anulare
+                </button>
+                <button
+                  onClick={confirmConversion}
+                  className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                >
+                  ✓ Convertește
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1223,23 +1400,44 @@ Pentru suport, contactați administratorul.`;
                       </div>
                     </div>
 
-                    {/* License Key & Password */}
+                    {/* License Key/Email & Password */}
                     <div className="bg-gray-100 rounded-lg p-3 lg:w-64">
-                      <div className="mb-2">
-                        <p className="text-xs text-gray-500 mb-1">Cheie Licență</p>
-                        <div className="flex items-center gap-2">
-                          <code className="text-sm font-mono bg-white px-2 py-1 rounded flex-1">{license.licenseKey}</code>
-                          <button
-                            onClick={() => copyToClipboard(license.licenseKey, `key-${license.id}`)}
-                            className="p-1 hover:bg-gray-200 rounded"
-                            title="Copiază"
-                          >
-                            {copiedKey === `key-${license.id}` ? <Check size={16} className="text-green-600" /> : <Copy size={16} className="text-gray-400" />}
-                          </button>
+                      {license.licenseKeyDisabled ? (
+                        /* Email login display */
+                        <div className="mb-2">
+                          <p className="text-xs text-gray-500 mb-1">📧 Email (Login)</p>
+                          <div className="flex items-center gap-2">
+                            <code className="text-sm font-mono bg-white px-2 py-1 rounded flex-1 truncate">{license.email}</code>
+                            <button
+                              onClick={() => copyToClipboard(license.email, `email-${license.id}`)}
+                              className="p-1 hover:bg-gray-200 rounded"
+                              title="Copiază"
+                            >
+                              {copiedKey === `email-${license.id}` ? <Check size={16} className="text-green-600" /> : <Copy size={16} className="text-gray-400" />}
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1 line-through">Cheie: {license.licenseKey}</p>
                         </div>
-                      </div>
+                      ) : (
+                        /* License key login display */
+                        <div className="mb-2">
+                          <p className="text-xs text-gray-500 mb-1">🔑 Cheie Licență</p>
+                          <div className="flex items-center gap-2">
+                            <code className="text-sm font-mono bg-white px-2 py-1 rounded flex-1">{license.licenseKey}</code>
+                            <button
+                              onClick={() => copyToClipboard(license.licenseKey, `key-${license.id}`)}
+                              className="p-1 hover:bg-gray-200 rounded"
+                              title="Copiază"
+                            >
+                              {copiedKey === `key-${license.id}` ? <Check size={16} className="text-green-600" /> : <Copy size={16} className="text-gray-400" />}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Parolă</p>
+                        <p className="text-xs text-gray-500 mb-1">
+                          🔒 Parolă {license.mustChangePassword && <span className="text-orange-500">(temporară)</span>}
+                        </p>
                         <div className="flex items-center gap-2">
                           <code className="text-sm font-mono bg-white px-2 py-1 rounded flex-1">
                             {showPassword[license.id] ? license.password : '••••••••'}
