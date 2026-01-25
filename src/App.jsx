@@ -372,12 +372,12 @@ Pentru suport, contactați administratorul.`;
   const resetCredentials = async (license) => {
     setConfirmDialog({
       show: true,
-      message: `Sigur doriți să resetați credențialele pentru "${license.companyName}"? Operatorul va primi o nouă cheie și parolă.`,
+      message: `Sigur doriți să resetați parola pentru "${license.companyName}"? Operatorul va primi o parolă nouă.`,
       onConfirm: async () => {
         const updatedLicense = {
           ...license,
-          licenseKey: generateLicenseKey(),
           password: generatePassword(),
+          mustChangePassword: false, // Reset this flag too
           updatedAt: new Date().toISOString()
         };
         
@@ -1531,10 +1531,10 @@ Pentru suport, contactați administratorul.`;
                       <button
                         onClick={() => resetCredentials(license)}
                         className="flex items-center gap-1 px-3 py-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 text-sm"
-                        title="Resetează credențiale"
+                        title="Resetează parola"
                       >
                         <RefreshCw size={14} />
-                        <span className="hidden sm:inline">Reset</span>
+                        <span className="hidden sm:inline">Reset Parolă</span>
                       </button>
                       <button
                         onClick={() => toggleLicenseStatus(license)}
