@@ -1,8 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Search, Key, Calendar, Building2, CreditCard, Check, X, AlertTriangle, Clock, RefreshCw, Trash2, Edit, Eye, EyeOff, Copy, Shield, Lock, LogOut, FileText, Mail, MessageCircle } from 'lucide-react';
+import { Users, Plus, Search, Key, Calendar, Building2, CreditCard, Check, X, AlertTriangle, Clock, RefreshCw, Trash2, Edit, Eye, EyeOff, Copy, Shield, Lock, LogOut, FileText, Mail, MessageCircle, Smartphone } from 'lucide-react';
 
 // ⚠️ IMPORTANT: Schimbă această parolă cu una proprie!
 const ADMIN_PASSWORD = 'RevizioAdmin#2026!';
+
+// Supabase configuration
+const SUPABASE_URL = 'https://syfqurfdcveradtzvove.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZnF1cmZkY3ZlcmFkdHp2b3ZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NTIwMjcsImV4cCI6MjA4NTAyODAyN30.lMzdAjs04bVcULW-Ar9cZEenU0dW7FyoROqMiZG5ax8';
+
+// Device session management
+const deviceSession = {
+  async reset(email) {
+    try {
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/device_sessions?email=eq.${encodeURIComponent(email)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        }
+      );
+      return response.ok;
+    } catch (error) {
+      console.error('Error resetting device session:', error);
+      return false;
+    }
+  },
+  
+  async check(email) {
+    try {
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/device_sessions?email=eq.${encodeURIComponent(email)}&select=*`,
+        {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        }
+      );
+      const data = await response.json();
+      return data.length > 0 ? data[0] : null;
+    } catch (error) {
+      console.error('Error checking device session:', error);
+      return null;
+    }
+  }
+};
 
 // Storage wrapper pentru localStorage (înlocuiește storage)
 const storage = {
@@ -388,6 +433,34 @@ Vă mulțumim că ați ales RevizioApp!`;
         await storage.set(license.id, JSON.stringify(updatedLicense));
         await loadLicenses();
         setConfirmDialog({ show: false, message: '', onConfirm: null });
+      }
+    });
+  };
+
+  const resetDeviceSession = async (license) => {
+    if (!license.email) {
+      alert('Această licență nu are email asociat.');
+      return;
+    }
+    
+    setConfirmDialog({
+      show: true,
+      message: `Sigur doriți să resetați dispozitivul pentru "${license.companyName}" (${license.email})?\n\nOperatorul va putea să se logheze pe un nou dispozitiv.`,
+      onConfirm: async () => {
+        const success = await deviceSession.reset(license.email);
+        if (success) {
+          setConfirmDialog({
+            show: true,
+            message: `✅ Dispozitivul a fost resetat cu succes pentru ${license.email}.\n\nOperatorul poate acum să se logheze pe un nou dispozitiv.`,
+            onConfirm: () => setConfirmDialog({ show: false, message: '', onConfirm: null })
+          });
+        } else {
+          setConfirmDialog({
+            show: true,
+            message: '❌ Eroare la resetarea dispozitivului. Încercați din nou.',
+            onConfirm: () => setConfirmDialog({ show: false, message: '', onConfirm: null })
+          });
+        }
       }
     });
   };
@@ -1542,6 +1615,16 @@ Pentru suport, contactați administratorul.`;
                         <RefreshCw size={14} />
                         <span className="hidden sm:inline">Reset Parolă</span>
                       </button>
+                      {license.isUnlimited && license.email && (
+                        <button
+                          onClick={() => resetDeviceSession(license)}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 text-sm"
+                          title="Resetează dispozitivul - permite logarea pe alt device"
+                        >
+                          <Smartphone size={14} />
+                          <span className="hidden sm:inline">Reset Dispozitiv</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => toggleLicenseStatus(license)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded text-sm ${
